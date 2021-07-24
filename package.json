@@ -17,5 +17,9 @@
     "parcel-bundler": "^1.12.4",
     "sass": "^1.27.0",
     "css-wipe": "^4.3.0"
+  },
+  "dependencies": {
+    "regenerator-runtime": "^0.13.7",
+    "webt": "0.0.11"
   }
 }
