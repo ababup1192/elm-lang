@@ -1,11 +1,19 @@
-port module Main exposing (Msg(..), main, update)
+port module Main exposing
+    ( Msg(..)
+    , Tree(..)
+    , main
+    , makeCodeSec
+    , makeExportSec
+    , makeFuncSec
+    , makeString
+    , makeTypeSec
+    )
 
 import Browser
 import Html exposing (Html, button, div, main_, pre, text, textarea)
 import Html.Attributes exposing (class, cols, rows)
 import Html.Events exposing (onClick, onInput)
 import Parser exposing ((|.), (|=), Parser, int, spaces, succeed, symbol)
-import Test.Html.Query exposing (count)
 
 
 
@@ -106,59 +114,76 @@ makeVersion =
 
 makeTypeSec : Tree
 makeTypeSec =
-    Branch
-        [ -- section id: type section
-          Leaf 0x01
-
-        -- section size
-        , Leaf 0x04
-        , makeVec
-            [ branch
-                [ 0x60
-                , 0x00
-                , 0x00
+    let
+        body =
+            makeVec
+                [ branch
+                    [ 0x60
+                    , 0x00
+                    , 0x00
+                    ]
                 ]
-            ]
-        ]
+    in
+    makeSection 0x01 body
 
 
 makeFuncSec : Tree
 makeFuncSec =
-    Branch
-        [ Leaf 0x03
-        , Leaf 0x02
-        , makeVec [ branch [ 0x00 ] ]
-        ]
+    let
+        body =
+            makeVec [ branch [ 0x00 ] ]
+    in
+    makeSection 0x03 body
 
 
 makeExportSec : Tree
 makeExportSec =
-    Branch
-        [ Leaf 0x07
-        , Leaf 0x05
-        , makeVec
-            [ Branch
-                [ makeString "a"
-                , Leaf 0x00
-                , Leaf 0x00
+    let
+        body =
+            makeVec
+                [ Branch
+                    [ makeString "a"
+                    , Leaf 0x00
+                    , Leaf 0x00
+                    ]
                 ]
-            ]
-        ]
+    in
+    makeSection 0x07 body
 
 
 makeCodeSec : Tree
 makeCodeSec =
-    Branch
-        [ Leaf 0x0A
-        , Leaf 0x04
-        , makeVec
-            [ branch
-                [ 0x02
-                , 0x00
-                , 0x0B
+    let
+        body =
+            makeVec
+                [ branch
+                    [ 0x02
+                    , 0x00
+                    , 0x0B
+                    ]
                 ]
-            ]
-        ]
+    in
+    makeSection 0x0A body
+
+
+countLeaves : Tree -> Int
+countLeaves tree =
+    case tree of
+        Leaf _ ->
+            1
+
+        Branch trees ->
+            List.foldl
+                (\t acc ->
+                    acc + countLeaves t
+                )
+                0
+                trees
+
+
+makeSection : Int -> Tree -> Tree
+makeSection id body =
+    Branch [ Leaf id, Leaf <| countLeaves body, body ]
 
 
 u8tree2u8array : Tree -> List Int
