@@ -87,6 +87,16 @@ type Tree
     | Branch (List Tree)
 
 
+type alias Function =
+    { exported : Bool
+    , name : String
+    , params : List Int
+    , result : List Int
+    , local : List Int
+    , code : List Int
+    }
+
+
 makeVec : List Tree -> Tree
 makeVec trees =
     Branch [ Leaf <| List.length trees, Branch trees ]
@@ -112,56 +122,96 @@ makeVersion =
     branch [ 0x01, 0x00, 0x00, 0x00 ]
 
 
-makeTypeSec : Tree
-makeTypeSec =
+makeFuncType : Function -> Tree
+makeFuncType function =
+    Branch <|
+        [ Leaf 0x60
+        , makeVec <| List.map Leaf function.params
+        , makeVec <| List.map Leaf function.result
+        ]
+
+
+makeTypeSec : List Function -> Tree
+makeTypeSec functions =
     let
         body =
-            makeVec
-                [ branch
-                    [ 0x60
-                    , 0x00
-                    , 0x00
-                    ]
-                ]
+            makeVec <|
+                List.map
+                    makeFuncType
+                    functions
     in
     makeSection 0x01 body
 
 
-makeFuncSec : Tree
-makeFuncSec =
+makeFuncSec : List Function -> Tree
+makeFuncSec functions =
     let
         body =
-            makeVec [ branch [ 0x00 ] ]
+            makeVec <|
+                List.indexedMap
+                    (\index _ ->
+                        branch [ index ]
+                    )
+                    functions
     in
     makeSection 0x03 body
 
 
-makeExportSec : Tree
-makeExportSec =
+makeExport : String -> Int -> Int -> Tree
+makeExport name typeId index =
+    Branch [ makeString name, Leaf typeId, Leaf index ]
+
+
+makeFuncExport : String -> Int -> Tree
+makeFuncExport name index =
+    makeExport name 0x00 index
+
+
+makeExportSec : List Function -> Tree
+makeExportSec functions =
     let
         body =
-            makeVec
-                [ Branch
-                    [ makeString "a"
-                    , Leaf 0x00
-                    , Leaf 0x00
-                    ]
-                ]
+            makeVec <|
+                List.filterMap
+                    (\( index, function ) ->
+                        if function.exported then
+                            Just <|
+                                makeFuncExport function.name index
+
+                        else
+                            Nothing
+                    )
+                <|
+                    List.indexedMap
+                        Tuple.pair
+                    <|
+                        functions
     in
     makeSection 0x07 body
 
 
-makeCodeSec : Tree
-makeCodeSec =
+makeCode : Function -> Tree
+makeCode function =
+    let
+        locals =
+            makeVec <| List.map Leaf function.local
+
+        body =
+            Branch [ branch function.code, Leaf 0x0B ]
+    in
+    Branch
+        [ Leaf <| countLeaves locals + countLeaves body
+        , locals
+        , body
+        ]
+
+
+makeCodeSec : List Function -> Tree
+makeCodeSec functions =
     let
         body =
-            makeVec
-                [ branch
-                    [ 0x02
-                    , 0x00
-                    , 0x0B
-                    ]
-                ]
+            makeVec <|
+                List.map makeCode functions
     in
     makeSection 0x0A body
 
@@ -207,6 +257,24 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UpdateSource source ->
+            let
+                functions =
+                    [ { exported = True
+                      , name = "aa"
+                      , params = []
+                      , result = [ 0x7F ]
+                      , local = []
+                      , code = [ 0x41, 0x01 ]
+                      }
+                    , { exported = True
+                      , name = "bb"
+                      , params = [ 0x7F ]
+                      , result = [ 0x7F ]
+                      , local = []
+                      , code = [ 0x20, 0x00 ]
+                      }
+                    ]
+            in
             -- case Parser.run addParser source of
             -- Ok biOp ->
             ( { model | source = source }
@@ -215,10 +283,10 @@ update msg model =
                     Branch
                         [ makeMagic
                         , makeVersion
-                        , makeTypeSec
-                        , makeFuncSec
-                        , makeExportSec
-                        , makeCodeSec
+                        , makeTypeSec functions
+                        , makeFuncSec functions
+                        , makeExportSec functions
+                        , makeCodeSec functions
                         ]
             )
 

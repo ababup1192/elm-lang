@@ -12,6 +12,14 @@ makeTypeSecTest =
         [ test "makeTypeSec は以下のように展開される" <|
             \_ ->
                 makeTypeSec
+                    [ { exported = True
+                      , name = "function"
+                      , params = []
+                      , result = []
+                      , local = []
+                      , code = []
+                      }
+                    ]
                     |> Expect.equal
                         (Branch
                             [ Leaf 0x01
@@ -19,7 +27,17 @@ makeTypeSecTest =
                             , Branch
                                 [ Leaf 0x01
                                 , Branch
-                                    [ Branch [ Leaf 0x60, Leaf 0x00, Leaf 0x00 ]
+                                    [ Branch
+                                        [ Leaf 0x60
+                                        , Branch
+                                            [ Leaf 0x00
+                                            , Branch []
+                                            ]
+                                        , Branch
+                                            [ Leaf 0x00
+                                            , Branch []
+                                            ]
+                                        ]
                                     ]
                                 ]
                             ]
@@ -33,6 +51,14 @@ makeFuncSecTest =
         [ test "makeFuncSec は以下のように展開される" <|
             \_ ->
                 makeFuncSec
+                    [ { exported = True
+                      , name = "a"
+                      , params = []
+                      , result = []
+                      , local = []
+                      , code = []
+                      }
+                    ]
                     |> Expect.equal
                         (Branch
                             [ Leaf 0x03
@@ -54,6 +80,14 @@ makeExportSecTest =
         [ test "makeExportSec は以下のように展開される" <|
             \_ ->
                 makeExportSec
+                    [ { exported = True
+                      , name = "a"
+                      , params = []
+                      , result = []
+                      , local = []
+                      , code = []
+                      }
+                    ]
                     |> Expect.equal
                         (Branch
                             [ Leaf 0x07
@@ -79,6 +113,14 @@ makeCodeSecTest =
         [ test "makeCodeSec は以下のように展開される" <|
             \_ ->
                 makeCodeSec
+                    [ { exported = True
+                      , name = "a"
+                      , params = []
+                      , result = []
+                      , local = []
+                      , code = []
+                      }
+                    ]
                     |> Expect.equal
                         (Branch
                             [ Leaf 0x0A
@@ -88,8 +130,14 @@ makeCodeSecTest =
                                 , Branch
                                     [ Branch
                                         [ Leaf 0x02
-                                        , Leaf 0x00
-                                        , Leaf 0x0B
+                                        , Branch
+                                            [ Leaf 0
+                                            , Branch []
+                                            ]
+                                        , Branch
+                                            [ Branch []
+                                            , Leaf 0x0B
+                                            ]
                                         ]
                                     ]
                                 ]
