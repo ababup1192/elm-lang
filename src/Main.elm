@@ -254,14 +254,51 @@ u8tree2u8array tree =
     emit tree
 
 
-makeI32 : Int -> List Int
-makeI32 value =
+makeInt32 : Int -> List Int
+makeInt32 value =
     List.reverse <|
-        makeI32_ value 0 []
+        makeInt32_ value []
 
 
-makeI32_ : Int -> Int -> List Int -> List Int
-makeI32_ value pad bytes =
+makeInt32_ : Int -> List Int -> List Int
+makeInt32_ value bytes =
+    let
+        size =
+            ceiling <| logBase 2.0 <| abs <| toFloat value
+
+        byte =
+            Bitwise.and value 127
+
+        nextValue =
+            if value < 0 then
+                Bitwise.or value <| negate <| Bitwise.shiftLeftBy (size - 7) 1
+
+            else
+                Bitwise.shiftRightBy 7 value
+
+        end =
+            (nextValue == 0 && Bitwise.and byte 0x40 == 0)
+                || (nextValue == -1 && Bitwise.and byte 0x40 == 0x40)
+    in
+    if end then
+        byte :: bytes
+
+    else
+        let
+            nextByte =
+                Bitwise.or byte 128
+        in
+        makeInt32_ nextValue <| nextByte :: bytes
+
+
+makeUInt32 : Int -> List Int
+makeUInt32 value =
+    List.reverse <|
+        makeUInt32_ value 0 []
+
+
+makeUInt32_ : Int -> Int -> List Int -> List Int
+makeUInt32_ value pad bytes =
     let
         byte =
             Bitwise.and value 0x7F
@@ -278,7 +315,7 @@ makeI32_ value pad bytes =
                 else
                     byte
         in
-        makeI32_ nextValue (pad - 1) <| nextByte :: bytes
+        makeUInt32_ nextValue (pad - 1) <| nextByte :: bytes
 
     else
         byte :: bytes
@@ -295,7 +332,7 @@ update msg model =
                       , params = []
                       , result = [ 0x7F ]
                       , local = []
-                      , code = 0x41 :: makeI32 0xB8
+                      , code = 0x41 :: makeInt32 0xFF
                       }
                     , { exported = True
                       , name = "bb"
