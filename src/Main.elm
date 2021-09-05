@@ -9,6 +9,7 @@ port module Main exposing
     , makeTypeSec
     )
 
+import Bitwise
 import Browser
 import Html exposing (Html, button, div, main_, pre, text, textarea)
 import Html.Attributes exposing (class, cols, rows)
@@ -253,6 +254,36 @@ u8tree2u8array tree =
     emit tree
 
 
+makeI32 : Int -> List Int
+makeI32 value =
+    List.reverse <|
+        makeI32_ value 0 []
+
+
+makeI32_ : Int -> Int -> List Int -> List Int
+makeI32_ value pad bytes =
+    let
+        byte =
+            Bitwise.and value 0x7F
+
+        nextValue =
+            Bitwise.shiftRightBy 0x07 value
+    in
+    if nextValue /= 0 || pad > -1 then
+        let
+            nextByte =
+                if nextValue /= 0 || pad > 0 then
+                    Bitwise.or byte 0x80
+
+                else
+                    byte
+        in
+        makeI32_ nextValue (pad - 1) <| nextByte :: bytes
+
+    else
+        byte :: bytes
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -264,7 +295,7 @@ update msg model =
                       , params = []
                       , result = [ 0x7F ]
                       , local = []
-                      , code = [ 0x41, 0x01 ]
+                      , code = 0x41 :: makeI32 0xB8
                       }
                     , { exported = True
                       , name = "bb"
