@@ -264,7 +264,7 @@ makeInt32_ : Int -> List Int -> List Int
 makeInt32_ value bytes =
     let
         size =
-            ceiling <| logBase 2.0 <| abs <| toFloat value
+            ceiling <| logBase 2 <| abs <| toFloat value
 
         byte =
             Bitwise.and value 127
